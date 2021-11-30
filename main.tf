@@ -1,28 +1,39 @@
-# Create a new Lightsail Key Pair
-resource "aws_lightsail_key_pair" "main" {
-  count = var.enabled && var.keypair_enabled ? 1 : 0
-  name = var.key_name
-  public_key = var.public_key
-}
-
 resource "aws_lightsail_instance" "main" {
-  count = var.enabled && var.lightsail_enabled ? 1 : 0
-  name              = var.light_name
   availability_zone = var.availability_zone
   blueprint_id      = var.blueprint_id
   bundle_id         = var.bundle_id
-  user_data         = var.user_data
-  key_pair_name     = var.enabled && var.keypair_enabled ? join("", aws_lightsail_key_pair.main.*.name) : var.exsting_key_name
-  tags = var.tag
+  name              = var.name
+  user_data = var.user_data
+  tags              = var.tags
 }
 
-resource "aws_lightsail_static_ip" "main" {
-  count = var.enabled && var.static_ip_enabled ? 1 : 0
+resource "aws_key_pair" "key" {
+  key_name   = var.key_name
+  public_key = var.public_key
+}
+resource "aws_lightsail_static_ip" "static" {
   name = var.static_ip_name
 }
 
-resource "aws_lightsail_static_ip_attachment" "dev" {
-  count = var.enabled && var.static_ip_enabled ? 1 : 0
-  static_ip_name = join("", aws_lightsail_static_ip.main.*.name)
-  instance_name  = join("", aws_lightsail_instance.main.*.name)
+resource "aws_lightsail_static_ip_attachment" "static_ip_attachment" {
+  static_ip_name = aws_lightsail_static_ip.static.id
+  instance_name  = aws_lightsail_instance.main.id
 }
+resource "aws_lightsail_domain" "domain_test" {
+  domain_name = var.domain_name
+}
+resource "aws_lightsail_instance_public_ports" "public_ports" {
+  instance_name = aws_lightsail_instance.main.name
+
+  port_info {
+    protocol  = "tcp"
+    from_port = 80
+    to_port   = 80
+  }
+  port_info {
+    protocol  = "tcp"
+    from_port = 22
+    to_port   = 22
+  }
+}
+
